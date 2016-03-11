@@ -10,7 +10,7 @@ module.exports = function (message) {
             levelRange        = document.getElementById('battery-level'),
             pluggedCheckbox   = document.getElementById('is-plugged');
 
-        function updateBatterLevelText(level) {
+        function updateBatteryLevelText(level) {
             labelBatteryLevel.textContent = level + '%';
         }
 
@@ -18,7 +18,7 @@ module.exports = function (message) {
         var info = battery.getBatteryInfo();
         pluggedCheckbox.checked = info.isPlugged;
         levelRange.value = info.level;
-        updateBatterLevelText(info.level);
+        updateBatteryLevelText(info.level);
 
         // attach event listeners
         levelRange.addEventListener('change', function () {
@@ -26,7 +26,7 @@ module.exports = function (message) {
         });
 
         levelRange.addEventListener('input', function () {
-            updateBatterLevelText(this.value);
+            updateBatteryLevelText(this.value);
         });
 
         pluggedCheckbox.addEventListener('click', function () {
