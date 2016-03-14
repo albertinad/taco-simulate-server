@@ -13,8 +13,9 @@ var battery = {
     listenerEnabled: false,
 
     initialize: function (message) {
+        var isPlugged = db.retrieve(constants.BATTERY_STATUS.IS_PLUGGED_KEY);
         _batteryInfo.level = db.retrieve(constants.BATTERY_STATUS.BATTERY_STATUS_KEY) || 100;
-        _batteryInfo.isPlugged = db.retrieve(constants.BATTERY_STATUS.IS_PLUGGED_KEY) || true;
+        _batteryInfo.isPlugged =  (isPlugged) ? (isPlugged === 'true') : true;
     },
 
     /**
