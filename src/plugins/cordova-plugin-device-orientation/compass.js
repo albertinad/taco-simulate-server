@@ -1,48 +1,54 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 
-var DirectionText = {
-    N: 'N',
-    NE: 'NE',
-    E: 'E',
-    SE: 'SE',
-    S: 'S',
-    SW: 'SW',
-    W: 'W',
-    NW: 'NW'
+var db = require('db');
+
+var constants = {
+    HEADING_KEY: 'device-orientation-heading-key'
 };
 
-function getDirection(heading) {
-    if (heading >= 337.5 || (heading >= 0 && heading <= 22.5)) {
-        return DirectionText.N;
-    }
+var compass = {
+    heading: null,
 
-    if (heading >= 22.5 && heading <= 67.5) {
-        return DirectionText.NE;
-    }
+    initialize: function (message) {
+        var value = db.retrieve(constants.HEADING_KEY);
 
-    if (heading >= 67.5 && heading <= 112.5) {
-        return DirectionText.E;
-    }
+        this.heading = parseInt(value) || 0;
+    },
 
-    if (heading >= 112.5 && heading <= 157.5) {
-        return DirectionText.SE;
-    }
+    /**
+     * @param {number} value
+     */
+    updateHeading: function (value) {
+        this.heading = value;
 
-    if (heading >= 157.5 && heading <= 202.5) {
-        return DirectionText.S;
-    }
+        db.save(constants.HEADING_KEY, this.heading);
+    },
 
-    if (heading >= 202.5 && heading <= 247.5) {
-        return DirectionText.SW;
-    }
+    /**
+     * The exec call to Compass.getHeading executes this function.
+     * @param {function} success The function used to simulate the native call to CallbackContext.sendPluginResult.
+     * @param {function} error The function used to simulate the native call to CallbackContext.error
+     */
+    getHeading: function (success, error) {
+        if (typeof success === 'function') {
+            success(compass.getHeadingResult());
+        }
+    },
 
-    if (heading >= 247.5 && heading <= 292.5) {
-        return DirectionText.W;
-    }
+    /**
+     * The exec call to Compass.stopHeading executes this function.
+     */
+    stopHeading: function () {
+        // TODO implement for iOS
+    },
 
-    if (heading >= 292.5 && heading <= 337.5) {
-        return DirectionText.NW;
+    getHeadingResult: function () {
+        return {
+            magneticHeading: this.heading,
+            trueHeading: this.heading,
+            headingAccuracy: 100
+        };
     }
-}
+};
 
-module.exports = getDirection;
+module.exports = compass;

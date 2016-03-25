@@ -2,13 +2,15 @@
 
 module.exports = function (messages) {
 
+    var compass = require('./compass');
+
     return {
         Compass: {
             getHeading: function (success, error, options) {
-                // TODO
+               compass.getHeading(success, error, options);
             },
             stopHeading: function (success, error) {
-                // TODO
+                compass.stopHeading();
             }
         }
     };

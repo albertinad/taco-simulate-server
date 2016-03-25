@@ -2,19 +2,32 @@
 
 module.exports = function (message) {
 
-    var CompassWidget = require('./compass-widget');
+    var CompassWidget = require('./compass-widget'),
+        compass = require('./compass');
+
+    compass.initialize();
 
     function initialize() {
         var compassElement = document.getElementById('compass-widget'),
-            labelHeading = document.getElementById('compass-heading-value');
+            inputHeading = document.getElementById('compass-heading-value'),
+            headingText = document.querySelector('[data-compass-heading="text"]');
 
-        function updateHeadingText(value) {
-            labelHeading.value = value;
+        function headingUpdated(heading) {
+            compass.updateHeading(heading.value);
+
+            // update UI
+            inputHeading.value = heading.value;
+            headingText.textContent = heading.direction;
         }
 
         var compassWidget = new CompassWidget({ container: compassElement });
-        compassWidget.addHeadingUpdatedCallback(updateHeadingText);
+        compassWidget.addHeadingUpdatedCallback(headingUpdated);
         compassWidget.initialize();
+        compassWidget.updateHeading(compass.heading);
+
+        inputHeading.addEventListener('input', function () {
+            compassWidget.updateHeading(this.value);
+        });
     }
 
     return {

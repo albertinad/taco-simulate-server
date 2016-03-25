@@ -46,21 +46,66 @@ function CompassWidget(options) {
     this._canvasElement.addEventListener('mousedown', this._onDragStartCallback);
 
     this._canvasElement.addEventListener('click', function (event) {
-        this.updateHeadingToPosition(event.x, event.y);
+        this._updateHeadingToPosition(event.x, event.y);
     }.bind(this));
 
-    this._lastHeading = 0;
+    this._currentHeading = 0;
 }
 
 CompassWidget.Defaults = {
     DIAMETER: 160
 };
 
+CompassWidget.Direction = {
+    N: 'N',
+    NE: 'NE',
+    E: 'E',
+    SE: 'SE',
+    S: 'S',
+    SW: 'SW',
+    W: 'W',
+    NW: 'NW'
+};
+
+CompassWidget.getDirection = function (heading) {
+    if (heading >= 337.5 || (heading >= 0 && heading <= 22.5)) {
+        return CompassWidget.Direction.N;
+    }
+
+    if (heading >= 22.5 && heading <= 67.5) {
+        return CompassWidget.Direction.NE;
+    }
+
+    if (heading >= 67.5 && heading <= 112.5) {
+        return CompassWidget.Direction.E;
+    }
+
+    if (heading >= 112.5 && heading <= 157.5) {
+        return CompassWidget.Direction.SE;
+    }
+
+    if (heading >= 157.5 && heading <= 202.5) {
+        return CompassWidget.Direction.S;
+    }
+
+    if (heading >= 202.5 && heading <= 247.5) {
+        return CompassWidget.Direction.SW;
+    }
+
+    if (heading >= 247.5 && heading <= 292.5) {
+        return CompassWidget.Direction.W;
+    }
+
+    if (heading >= 292.5 && heading <= 337.5) {
+        return CompassWidget.Direction.NW;
+    }
+};
+
 CompassWidget.prototype.initialize = function () {
-    var indicatorContext = this._indicatorCanvasElement.getContext('2d');
-    var diameter = this._diameter + this._wrapperSize;
-    var x = this._center.x + this._wrapperSize / 2;
-    var y = this._center.y + this._wrapperSize / 2;
+    var indicatorContext = this._indicatorCanvasElement.getContext('2d'),
+        diameter = this._diameter + this._wrapperSize,
+        x = this._center.x + this._wrapperSize / 2,
+        y = this._center.y + this._wrapperSize / 2;
 
     this._indicatorCanvasElement.style.position = 'absolute';
     this._indicatorCanvasElement.width = this._diameter + this._wrapperSize;
@@ -127,37 +172,52 @@ CompassWidget.prototype._drawCompass = function () {
     // directions
     this._context.fillStyle = '#000000';
     this._context.font = '14px Arial';
-    this._context.fillText('N', this._center.x - 5, this._compassBorderSize - 3);
-    this._context.fillText('E', this._center.x + this._diameter / 2 - this._compassBorderSize + 3, this._center.y);
-    this._context.fillText('S', this._center.x - 5, this._center.y + this._diameter / 2 - 3);
-    this._context.fillText('W', this._center.x - this._diameter / 2 + 1, this._center.y);
+    this._context.fillText(CompassWidget.Direction.N, this._center.x - 5, this._compassBorderSize - 3);
+    this._context.fillText(CompassWidget.Direction.E, this._center.x + this._diameter / 2 - this._compassBorderSize + 3, this._center.y);
+    this._context.fillText(CompassWidget.Direction.S, this._center.x - 5, this._center.y + this._diameter / 2 - 3);
+    this._context.fillText(CompassWidget.Direction.W, this._center.x - this._diameter / 2 + 1, this._center.y);
 };
 
-CompassWidget.prototype.updateHeadingToPosition = function (x, y) {
+/**
+ * @param {number} x
+ * @param {number} y
+ * @private
+ */
+CompassWidget.prototype._updateHeadingToPosition = function (x, y) {
     var rect = this._indicatorCanvasElement.getBoundingClientRect(),
         radius = this._diameter / 2,
         top = rect.top + radius + this._compassBorderSize,
-        left = rect.left + radius + this._compassBorderSize;
+        left = rect.left + radius + this._compassBorderSize,
+        rotationAngle = parseInt(Math.atan2(x - left, -(y - top)) * (180 / Math.PI));
 
-    var angle = parseInt(Math.atan2(x - left, -(y - top)) * (180 / Math.PI));
-
-    if (angle < 0) {
-        angle = parseInt(360 + angle);
+    if (rotationAngle < 0) {
+        rotationAngle = parseInt(360 + rotationAngle);
     }
 
-    this.updateHeadingToAngle(angle);
+    this._currentHeading = (rotationAngle !== 0) ? 360 - rotationAngle : rotationAngle;
+
+    this._updateRotation(rotationAngle);
+    this._notifyHeadingUpdated();
 };
 
-CompassWidget.prototype.updateHeadingToAngle = function (value) {
-    var rotate = 'rotate(' + value + 'deg)';
+/**
+ * @param {number} value
+ */
+CompassWidget.prototype.updateHeading = function (heading, notify) {
+    var rotationAngle = (heading !== 0) ? 360 - heading : heading;
+    this._currentHeading = heading;
+    this._updateRotation(rotationAngle);
+
+    this._notifyHeadingUpdated();
+};
+
+CompassWidget.prototype._updateRotation = function (rotationAngle) {
+    var rotate = 'rotate(' + rotationAngle + 'deg)';
     this._canvasElement.style.transform = rotate;
     this._canvasElement.style.webkitTransform = rotate;
     this._canvasElement.style.MozTransform = rotate;
     this._canvasElement.style.msTransform = rotate;
     this._canvasElement.style.oTransform = rotate;
-
-    this._lastHeading = (value !== 0) ? 360 - value : value;
-    this._notifyHeadingUpdated(value);
 };
 
 CompassWidget.prototype.addHeadingUpdatedCallback = function (callback) {
@@ -167,9 +227,14 @@ CompassWidget.prototype.addHeadingUpdatedCallback = function (callback) {
 /**
  * @private
  */
-CompassWidget.prototype._notifyHeadingUpdated = function (value) {
+CompassWidget.prototype._notifyHeadingUpdated = function () {
     if (typeof this._onHeadingUpdatedCallback === 'function') {
-        this._onHeadingUpdatedCallback(value);
+        var heading = {
+            value: this._currentHeading,
+            direction: CompassWidget.getDirection(this._currentHeading)
+        };
+
+        this._onHeadingUpdatedCallback(heading);
     }
 };
 
@@ -185,7 +250,7 @@ CompassWidget.prototype._onDragStart = function (event) {
  * @private
  */
 CompassWidget.prototype._onDrag = function (event) {
-    this.updateHeadingToPosition(event.x, event.y);
+    this._updateHeadingToPosition(event.x, event.y);
 };
 
 /**
