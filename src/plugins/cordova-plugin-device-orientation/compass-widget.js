@@ -40,7 +40,7 @@ function CompassWidget(options) {
     };
 
     this._onDragStartCallback = this._onDragStart.bind(this);
-    this._onDraggingCallback = this._onDrag.bind(this);
+    this._onDraggingCallback = this._onDragging.bind(this);
     this._onDragEndCallback = this._onDragEnd.bind(this);
 
     this._canvasElement.addEventListener('mousedown', this._onDragStartCallback);
@@ -67,6 +67,11 @@ CompassWidget.Direction = {
     NW: 'NW'
 };
 
+/**
+ * Get the direction according to the heading value.
+ * @param {number} heading A number from 0 to 359.99.
+ * @return {string} direction It can be one of the following: N, NE, E, SE, S, SW, W or NW.
+ */
 CompassWidget.getDirection = function (heading) {
     if (heading >= 337.5 || (heading >= 0 && heading <= 22.5)) {
         return CompassWidget.Direction.N;
@@ -117,14 +122,39 @@ CompassWidget.prototype.initialize = function () {
     indicatorContext.fill();
 
     indicatorContext.beginPath();
-    indicatorContext.moveTo(x, 0);
-    indicatorContext.lineTo(x, 5);
-    indicatorContext.fillStyle = '#FF532B';
-    indicatorContext.stroke();
+    indicatorContext.moveTo(x - this._wrapperSize / 3, 0);
+    indicatorContext.lineTo(x, this._wrapperSize / 2);
+    indicatorContext.lineTo(x + this._wrapperSize / 3, 0);
+    indicatorContext.lineTo(x, 0);
+    indicatorContext.fillStyle = '#DC052C';
+    indicatorContext.fill();
 
     this._drawCompass();
 };
 
+/**
+ * Set the heading value and update the rotation.
+ * @param {number} value
+ */
+CompassWidget.prototype.updateHeading = function (heading) {
+    var rotationAngle = (heading !== 0) ? 360 - heading : heading;
+    this._currentHeading = heading;
+    this._updateRotation(rotationAngle);
+
+    this._notifyHeadingUpdated();
+};
+
+/**
+ * @param {function} callback
+ */
+CompassWidget.prototype.addHeadingUpdatedCallback = function (callback) {
+    this._onHeadingUpdatedCallback = callback;
+};
+
+/**
+ * Draw the main compass, including the pointer and the directions section.
+ * @private
+ */
 CompassWidget.prototype._drawCompass = function () {
     this._context.beginPath();
     this._context.arc(this._center.x, this._center.y, this._diameter / 2, 0, Math.PI * 2, false);
@@ -179,6 +209,7 @@ CompassWidget.prototype._drawCompass = function () {
 };
 
 /**
+ * Update the heading to the given position in coordinates.
  * @param {number} x
  * @param {number} y
  * @private
@@ -201,16 +232,10 @@ CompassWidget.prototype._updateHeadingToPosition = function (x, y) {
 };
 
 /**
- * @param {number} value
+ * Rotate the canvas to the given angle in degrees.
+ * @param {number} rotationAngle Angle in degrees.
+ * @private
  */
-CompassWidget.prototype.updateHeading = function (heading, notify) {
-    var rotationAngle = (heading !== 0) ? 360 - heading : heading;
-    this._currentHeading = heading;
-    this._updateRotation(rotationAngle);
-
-    this._notifyHeadingUpdated();
-};
-
 CompassWidget.prototype._updateRotation = function (rotationAngle) {
     var rotate = 'rotate(' + rotationAngle + 'deg)';
     this._canvasElement.style.transform = rotate;
@@ -218,10 +243,6 @@ CompassWidget.prototype._updateRotation = function (rotationAngle) {
     this._canvasElement.style.MozTransform = rotate;
     this._canvasElement.style.msTransform = rotate;
     this._canvasElement.style.oTransform = rotate;
-};
-
-CompassWidget.prototype.addHeadingUpdatedCallback = function (callback) {
-    this._onHeadingUpdatedCallback = callback;
 };
 
 /**
@@ -249,7 +270,7 @@ CompassWidget.prototype._onDragStart = function (event) {
 /**
  * @private
  */
-CompassWidget.prototype._onDrag = function (event) {
+CompassWidget.prototype._onDragging = function (event) {
     this._updateHeadingToPosition(event.x, event.y);
 };
 
