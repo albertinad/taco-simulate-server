@@ -47,7 +47,7 @@ function CompassWidget(options) {
     this._canvasElement.addEventListener('mousedown', this._onDragStartCallback);
 
     this._canvasElement.addEventListener('click', function (event) {
-        this._updateHeadingToPosition(event.x, event.y);
+        this._updateHeadingToPosition(event.clientX, event.clientY);
     }.bind(this));
 
     this._heading = {
@@ -290,7 +290,7 @@ CompassWidget.prototype._onDragStart = function (event) {
  * @private
  */
 CompassWidget.prototype._onDragging = function (event) {
-    this._updateHeadingToPosition(event.x, event.y);
+    this._updateHeadingToPosition(event.clientX, event.clientY);
 };
 
 /**
