@@ -42,6 +42,7 @@ function CompassWidget(options) {
     this._onDragStartCallback = this._onDragStart.bind(this);
     this._onDraggingCallback = this._onDragging.bind(this);
     this._onDragEndCallback = this._onDragEnd.bind(this);
+    this._onHeadingUpdatedCallback = null;
 
     this._canvasElement.addEventListener('mousedown', this._onDragStartCallback);
 
@@ -49,7 +50,14 @@ function CompassWidget(options) {
         this._updateHeadingToPosition(event.x, event.y);
     }.bind(this));
 
-    this._currentHeading = 0;
+    this._heading = {
+        value: 0,
+        direction: CompassWidget.getDirection(this.value)
+    };
+
+    if (typeof options.headingUpdatedCallback === 'function') {
+        this._onHeadingUpdatedCallback = options.headingUpdatedCallback;
+    }
 }
 
 CompassWidget.Defaults = {
@@ -106,7 +114,7 @@ CompassWidget.getDirection = function (heading) {
     }
 };
 
-CompassWidget.prototype.initialize = function () {
+CompassWidget.prototype.initialize = function (headingValue) {
     var indicatorContext = this._indicatorCanvasElement.getContext('2d'),
         diameter = this._diameter + this._wrapperSize,
         x = this._center.x + this._wrapperSize / 2,
@@ -130,25 +138,42 @@ CompassWidget.prototype.initialize = function () {
     indicatorContext.fill();
 
     this._drawCompass();
+
+    this.updateHeading(headingValue);
 };
 
 /**
- * Set the heading value and update the rotation.
+ * Set the headig value, udpate the rotation and notify that it has changed.
  * @param {number} value
  */
-CompassWidget.prototype.updateHeading = function (heading) {
-    var rotationAngle = (heading !== 0) ? 360 - heading : heading;
-    this._currentHeading = heading;
-    this._updateRotation(rotationAngle);
+CompassWidget.prototype.updateHeading = function (value) {
+    this.setHeading(value);
 
     this._notifyHeadingUpdated();
 };
 
 /**
- * @param {function} callback
+ * Get the current heading.
+ * @return {object}
  */
-CompassWidget.prototype.addHeadingUpdatedCallback = function (callback) {
-    this._onHeadingUpdatedCallback = callback;
+CompassWidget.prototype.heading = function () {
+    return this._heading;
+};
+
+/**
+ * Set the heading value and update the rotation.
+ * @param {number} value Heading value in degrees.
+ */
+CompassWidget.prototype.setHeading = function (value) {
+    if (this._heading.value === value) {
+        return;
+    }
+
+    this._heading.value = value;
+    this._heading.direction = CompassWidget.getDirection(value);
+
+    var rotationAngle = (value !== 0) ? 360 - value : value;
+    this._updateRotation(rotationAngle);
 };
 
 /**
@@ -225,9 +250,8 @@ CompassWidget.prototype._updateHeadingToPosition = function (x, y) {
         rotationAngle = parseInt(360 + rotationAngle);
     }
 
-    this._currentHeading = (rotationAngle !== 0) ? 360 - rotationAngle : rotationAngle;
+    this.setHeading((rotationAngle !== 0) ? 360 - rotationAngle : rotationAngle);
 
-    this._updateRotation(rotationAngle);
     this._notifyHeadingUpdated();
 };
 
@@ -249,13 +273,8 @@ CompassWidget.prototype._updateRotation = function (rotationAngle) {
  * @private
  */
 CompassWidget.prototype._notifyHeadingUpdated = function () {
-    if (typeof this._onHeadingUpdatedCallback === 'function') {
-        var heading = {
-            value: this._currentHeading,
-            direction: CompassWidget.getDirection(this._currentHeading)
-        };
-
-        this._onHeadingUpdatedCallback(heading);
+    if (this._onHeadingUpdatedCallback) {
+        this._onHeadingUpdatedCallback(this._heading);
     }
 };
 

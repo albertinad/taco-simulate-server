@@ -9,17 +9,17 @@ var constants = {
 var compass = {
     heading: null,
 
-    initialize: function (message) {
+    initialize: function () {
         var value = db.retrieve(constants.HEADING_KEY);
 
-        this.heading = parseInt(value) || 0;
+        this.heading = parseFloat(value) || 0;
     },
 
     /**
      * @param {number} value
      */
     updateHeading: function (value) {
-        this.heading = value;
+        this.heading = parseFloat(value);
 
         db.save(constants.HEADING_KEY, this.heading);
     },
