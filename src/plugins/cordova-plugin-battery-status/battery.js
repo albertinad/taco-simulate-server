@@ -38,6 +38,8 @@ var battery = {
     updatePluggedStatus: function (isPlugged) {
         _batteryInfo.isPlugged = isPlugged;
         db.save(constants.BATTERY_STATUS.IS_PLUGGED_KEY, isPlugged);
+
+        notifyBatteryStatusChanged();
     },
 
     /**
